@@ -87,7 +87,6 @@ export const login = async (
   });
 };
 
-export const userInfo = async (req: any, res: Response):Promise<void> => {
-  res.json(req.user)
+export const userInfo = async (req: any, res: Response): Promise<void> => {
+  res.status(200).json({ message: "user info", data: req.user });
 };
-
