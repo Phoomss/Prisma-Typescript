@@ -72,8 +72,7 @@ export const login = async (
 
   const jwtToken = jwt.sign(
     {
-      id: userWithIdentifier.id,
-      email: userWithIdentifier.email,
+      userId: userWithIdentifier.id,
     },
     JWT_SECRET
   );
@@ -87,3 +86,8 @@ export const login = async (
     },
   });
 };
+
+export const userInfo = async (req: any, res: Response):Promise<void> => {
+  res.json(req.user)
+};
+
