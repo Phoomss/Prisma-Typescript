@@ -1,8 +1,10 @@
-import { Request, Response } from "express";
-import jwt  from "jsonwebtoken";
+import { NextFunction, Request, Response } from "express";
+import jwt from "jsonwebtoken";
 import prisma from "../configs/dbConfig";
 import { comparePassword, hashPassword } from "../helpers/authHelper";
 import { JWT_SECRET } from "../secrets";
+import { BadRequestsException } from "../exceptions/bad-requests";
+import { ErrorCode, HttpException } from "../exceptions/root";
 
 const handleError = (res: Response, error: unknown): void => {
   res.status(500).json({
@@ -11,7 +13,11 @@ const handleError = (res: Response, error: unknown): void => {
   });
 };
 
-export const signup = async (req: Request, res: Response): Promise<void> => {
+export const signup = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
   try {
     const { email, password, name } = req.body;
 
@@ -20,8 +26,12 @@ export const signup = async (req: Request, res: Response): Promise<void> => {
     });
 
     if (existingUser) {
-      res.status(400).json({ message: "User already exists!" });
-      return;
+      return next(
+        new BadRequestsException(
+          "User already exists",
+          ErrorCode.USER_ALREADY_EXISTS
+        )
+      );
     }
 
     const hashedPassword = await hashPassword(password);
@@ -43,7 +53,11 @@ export const signup = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-export const login = async (req: Request, res: Response): Promise<void> => {
+export const login = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
   try {
     const { email, password } = req.body;
 
@@ -52,10 +66,12 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     });
 
     if (!userWithIdentifier) {
-      res.status(401).json({
-        message: "Invalid email",
-      });
-      return;
+      return next(
+        new BadRequestsException(
+          "Invalid email",
+          ErrorCode.USER_NOT_FOUND
+        )
+      );
     }
 
     const matchPassword = await comparePassword(
@@ -64,19 +80,21 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     );
 
     if (!matchPassword) {
-      res.status(401).json({
-        message: "Invalid Password",
-      });
-      return;
+      return next(
+        new BadRequestsException(
+          "Invalid password",
+          ErrorCode.INCORRECT_PASSWORD
+        )
+      );
     }
 
     const jwtToken = jwt.sign(
-        {
-          id: userWithIdentifier.id,
-          email: userWithIdentifier.email,
-        },
-        JWT_SECRET
-      );
+      {
+        id: userWithIdentifier.id,
+        email: userWithIdentifier.email,
+      },
+      JWT_SECRET
+    );
 
     res.status(200).json({
       message: "login success",
