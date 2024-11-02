@@ -44,6 +44,42 @@ export const signup = async (
   });
 };
 
+export const signupAdmin = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  signupShema.parse(req.body);
+  const { email, password, name } = req.body;
+
+  const existingUser = await prisma.user.findFirst({
+    where: { email },
+  });
+
+  if (existingUser) {
+    new BadRequestsException(
+      "User already exists",
+      ErrorCode.USER_ALREADY_EXISTS
+    );
+  }
+
+  const hashedPassword = await hashPassword(password);
+
+  const newUser = await prisma.user.create({
+    data: {
+      email,
+      password: hashedPassword,
+      name,
+      role:"ADMIN"
+    },
+  });
+
+  res.status(201).json({
+    message: "User registered successfully!",
+    data: newUser,
+  });
+};
+
 export const login = async (
   req: Request,
   res: Response,
